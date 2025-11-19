@@ -297,7 +297,7 @@ if st.session_state.confronted and pokemon1_name != pokemon2_name:
     ganador, prob_ganador, perdedor, prob_perdedor = predecir_batalla(pokemon1_name, pokemon2_name, MODEL, SCALER)
     
     if ganador:
-        
+        st.balloons()
         # Columna Central: Ganador y Progreso
         with col_center:
             st.markdown("<h1 style='text-align: center; color: #16a34a;'>🏆 Ganador 🏆</h1>", unsafe_allow_html=True)
