@@ -260,44 +260,6 @@ def get_pokemon_image_url(pokemon_name):
         # Fallback si la API no encuentra el nombre (ej. variantes, formas especiales, o si el nombre no coincide)
         return "https://placehold.co/150x150/f0f0f0/888888?text=NO+IMAGE"
 
-def display_pokemon_card(col, name, prob_win=None, is_winner=False):
-    """
-    Muestra una tarjeta de Pokémon SÓLO con su nombre e imagen.
-    """
-    if name is None:
-        col.empty()
-        return
-
-    # Obtener imagen
-    image_url = get_pokemon_image_url(name)
-    
-    # Estilo de la tarjeta (Verde para ganador, Rojo para perdedor/Azul neutral)
-    color_border = "#4ade80" if is_winner else ("#f87171" if prob_win is not None and not is_winner else "#60a5fa") 
-    color_text = "#16a34a" if is_winner else ("#dc2626" if prob_win is not None and not is_winner else "#2563eb")
-    
-    # HTML de la tarjeta simplificado
-    card_html = f"""
-    <div style="
-        border: 4px solid {color_border};
-        border-radius: 15px;
-        padding: 15px;
-        margin: 10px 0;
-        text-align: center;
-        background-color: #ffffff;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        height: 300px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        align-items: center;
-        transition: border-color 0.3s ease;
-    ">
-        <h3 style="color: {color_text}; margin-bottom: 5px;">{name.title()}</h3>
-        <img src="{image_url}" onerror="this.onerror=null; this.src='https://placehold.co/150x150/f0f0f0/888888?text=NO+IMAGE';" width="150" height="150" style="margin-bottom: 10px;">
-    </div>
-    """
-    col.markdown(card_html, unsafe_allow_html=True)
-
 
 # --- 4. INTERFAZ DE STREAMLIT ---
 
