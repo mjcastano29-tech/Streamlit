@@ -243,24 +243,6 @@ def reset_confronted():
     """Resetea el estado cuando cambian los Pokémon seleccionados."""
     st.session_state['confronted'] = False
 
-# --- SIDEBAR CON DIAGNÓSTICO ---
-st.sidebar.title("🔍 Diagnóstico")
-
-# Verificar Pokémon específico
-# Usamos 'geodude' en minúsculas para la búsqueda ya que el df está en minúsculas
-if st.sidebar.button("Verificar Geodude"):
-    geodude_data = df[df['name'] == 'geodude']
-    if not geodude_data.empty:
-        geo = geodude_data.iloc[0]
-        st.sidebar.write(f"**Geodude:**")
-        st.sidebar.write(f"Altura: {geo['height_m']} m")
-        st.sidebar.write(f"Peso: {geo['weight_kg']} kg")
-        st.sidebar.write(f"Tipos: {geo['type1']}/{geo['type2']}")
-        st.sidebar.write(f"HP: {geo['hp']}, Attack: {geo['attack']}")
-        st.sidebar.success("✅ Datos cargados correctamente")
-    else:
-        st.sidebar.error("Geodude no encontrado")
-
 # --- INTERFAZ PRINCIPAL ---
 st.title("🏆 Pokémon Battle Predictor (SVM)")
 st.markdown("Selecciona dos Pokémon para predecir el ganador de un combate, basado en un modelo de Machine Learning (SVM) entrenado con simulaciones de batalla.")
