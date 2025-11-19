@@ -28,7 +28,7 @@ def load_data():
         # 1. Cargar el DataFrame
         df = pd.read_csv(DATA_PATH)
         
-        # 🐛 CORRECCIÓN CLAVE: Estandarizar la columna 'name' a minúsculas y sin espacios
+        # Estandarizar la columna 'name' a minúsculas y sin espacios
         df['name'] = df['name'].str.strip().str.lower()
         
         # Columnas necesarias para el modelo
@@ -39,7 +39,7 @@ def load_data():
         cols_against = [c for c in df.columns if c.startswith('against_')]
         df = df[cols_base + cols_against]
 
-        # --- IMPUTACIÓN DE NaN EN PESO Y ALTURA (MANTENIENDO LÓGICA ORIGINAL) ---
+        # --- IMPUTACIÓN DE NaN EN PESO Y ALTURA ---
         stats_cols = ['hp', 'attack', 'defense', 'sp_attack', 'sp_defense', 'speed', 'height_m', 'weight_kg']
         
         for col in stats_cols:
@@ -77,86 +77,14 @@ def load_model_and_scaler():
 # Cargar datos y modelo
 df = load_data()
 MODEL, SCALER = load_model_and_scaler()
-# 🐛 CORRECCIÓN: Usamos str.title() solo para la visualización en el selectbox
 POKEMON_LIST_DISPLAY = sorted(df['name'].str.title().unique())
 
 
-# --- 2. FUNCIONES DEL NÚCLEO DE PREDICCIÓN (Adaptadas) ---
+# --- 2. FUNCIONES DEL NÚCLEO DE PREDICCIÓN Y AUXILIARES ---
 
 def get_pokemon_row(pokemon_name):
     """Obtiene la fila del DataFrame usando el nombre en minúsculas."""
-    # 🐛 CORRECCIÓN: Se asegura que la búsqueda sea con el nombre en minúsculas
     return df[df['name'] == pokemon_name.lower()].iloc[0]
-def display_pokemon_card(col, name, prob_win=None, is_winner=False):
-    """
-    Muestra una tarjeta de Pokémon con imagen y estadísticas en un recuadro.
-    """
-    if name is None:
-        col.empty()
-        return
-
-    # 1. Obtener datos del Pokémon
-    row = get_pokemon_row(name)
-    image_url = get_pokemon_image_url(name)
-    
-    # 2. Definir estilos
-    color_border = "#4ade80" if is_winner else ("#f87171" if prob_win is not None and not is_winner else "#60a5fa") 
-    color_text = "#16a34a" if is_winner else ("#dc2626" if prob_win is not None and not is_winner else "#2563eb")
-    
-    # --- 3. Generar el HTML para las Estadísticas ---
-    # Colores base para las estadísticas (Estilo más neutral/oscuro)
-    stats_html = f"""
-    <div style="
-        width: 100%; 
-        background-color: #2e3034; /* Fondo oscuro para el recuadro */
-        border-radius: 8px; 
-        padding: 8px; 
-        margin-top: 10px;
-        color: #f0f0f0; /* Texto claro */
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
-    ">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-            <small>HP:</small> <strong>{int(row['hp'])}</strong>
-            <small>Attack:</small> <strong>{int(row['attack'])}</strong>
-            <small>Defense:</small> <strong>{int(row['defense'])}</strong>
-        </div>
-        <div style="display: flex; justify-content: space-between;">
-            <small>Sp.Atk:</small> <strong>{int(row['sp_attack'])}</strong>
-            <small>Sp.Def:</small> <strong>{int(row['sp_defense'])}</strong>
-            <small>Speed:</small> <strong>{int(row['speed'])}</strong>
-        </div>
-        <div style="text-align: center; margin-top: 5px; padding-top: 5px; border-top: 1px solid #444;">
-            <small>TOTAL STATS:</small> <strong>{int(row['hp'] + row['attack'] + row['defense'] + row['sp_attack'] + row['sp_defense'] + row['speed'])}</strong>
-        </div>
-    </div>
-    """
-    
-    # --- 4. HTML de la Tarjeta Completa ---
-    card_html = f"""
-    <div style="
-        border: 4px solid {color_border};
-        border-radius: 15px;
-        padding: 15px;
-        margin: 10px 0;
-        text-align: center;
-        background-color: #ffffff;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        height: 450px; /* Aumentamos la altura para acomodar las stats */
-        display: flex;
-        flex-direction: column;
-        justify-content: start; /* Alineamos arriba */
-        align-items: center;
-        transition: border-color 0.3s ease;
-    ">
-        <h3 style="color: {color_text}; margin-bottom: 5px;">{name.title()}</h3>
-        <img src="{image_url}" onerror="this.onerror=null; this.src='https://placehold.co/150x150/f0f0f0/888888?text=NO+IMAGE';" width="150" height="150" style="margin-bottom: 10px;">
-        
-        {stats_html}
-        
-    </div>
-    """
-    # Usamos la columna proporcionada para renderizar el HTML
-    col.markdown(card_html, unsafe_allow_html=True)
 
 def calcular_ventaja_completa(poke_a_name, poke_b_name):
     """Calcula la ventaja de tipo completa del Pokémon A contra el Pokémon B."""
@@ -239,6 +167,7 @@ def predecir_batalla(pokemon1, pokemon2, model, scaler):
         st.error(f"Error en la predicción: {e}")
         return None, 0, None, 0
 
+
 # --- 3. FUNCIONES DE INTERFAZ Y POKÉAPI ---
 
 @st.cache_data(ttl=3600)
@@ -257,8 +186,85 @@ def get_pokemon_image_url(pokemon_name):
         official_artwork = data['sprites']['other']['official-artwork']['front_default']
         return official_artwork
     except requests.exceptions.RequestException:
-        # Fallback si la API no encuentra el nombre (ej. variantes, formas especiales, o si el nombre no coincide)
+        # Fallback si la API no encuentra el nombre
         return "https://placehold.co/150x150/f0f0f0/888888?text=NO+IMAGE"
+
+# --- FUNCIÓN DE TARJETA MEJORADA PARA INCLUIR ESTILO DE EMPATE ---
+def display_pokemon_card(col, name, prob_win=None, is_winner=False, is_draw=False):
+    """
+    Muestra una tarjeta de Pokémon con imagen y ESTADÍSTICAS en un recuadro.
+    Acepta 'is_draw' para aplicar el estilo de empate (naranja).
+    """
+    if name is None:
+        col.empty()
+        return
+
+    # 1. Obtener datos del Pokémon
+    row = get_pokemon_row(name)
+    image_url = get_pokemon_image_url(name)
+    
+    # 2. Definir estilos
+    if is_draw:
+        # Estilo NARANJA para empate
+        color_border = "#f97316"  # Naranja
+        color_text = "#f97316"    # Naranja
+    else:
+        # Estilo original para ganador/perdedor/neutral
+        color_border = "#4ade80" if is_winner else ("#f87171" if prob_win is not None and not is_winner else "#60a5fa") 
+        color_text = "#16a34a" if is_winner else ("#dc2626" if prob_win is not None and not is_winner else "#2563eb")
+    
+    # --- 3. Generar el HTML para las Estadísticas ---
+    stats_html = f"""
+    <div style="
+        width: 100%; 
+        background-color: #2e3034; /* Fondo oscuro para el recuadro */
+        border-radius: 8px; 
+        padding: 8px; 
+        margin-top: 10px;
+        color: #f0f0f0; /* Texto claro */
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+    ">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+            <small>HP:</small> <strong>{int(row['hp'])}</strong>
+            <small>Attack:</small> <strong>{int(row['attack'])}</strong>
+            <small>Defense:</small> <strong>{int(row['defense'])}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+            <small>Sp.Atk:</small> <strong>{int(row['sp_attack'])}</strong>
+            <small>Sp.Def:</small> <strong>{int(row['sp_defense'])}</strong>
+            <small>Speed:</small> <strong>{int(row['speed'])}</strong>
+        </div>
+        <div style="text-align: center; margin-top: 5px; padding-top: 5px; border-top: 1px solid #444;">
+            <small>TOTAL STATS:</small> <strong>{int(row['hp'] + row['attack'] + row['defense'] + row['sp_attack'] + row['sp_defense'] + row['speed'])}</strong>
+        </div>
+    </div>
+    """
+    
+    # --- 4. HTML de la Tarjeta Completa ---
+    card_html = f"""
+    <div style="
+        border: 4px solid {color_border};
+        border-radius: 15px;
+        padding: 15px;
+        margin: 10px 0;
+        text-align: center;
+        background-color: #ffffff;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        height: 450px; /* Altura ajustada para las stats */
+        display: flex;
+        flex-direction: column;
+        justify-content: start; /* Alineamos arriba */
+        align-items: center;
+        transition: border-color 0.3s ease;
+    ">
+        <h3 style="color: {color_text}; margin-bottom: 5px;">{name.title()}</h3>
+        <img src="{image_url}" onerror="this.onerror=null; this.src='https://placehold.co/150x150/f0f0f0/888888?text=NO+IMAGE';" width="150" height="150" style="margin-bottom: 10px;">
+        
+        {stats_html}
+        
+    </div>
+    """
+    col.markdown(card_html, unsafe_allow_html=True)
 
 
 # --- 4. INTERFAZ DE STREAMLIT ---
@@ -322,14 +328,36 @@ st.markdown("---")
 col1_display, col_center, col2_display = st.columns([1, 1, 1])
 
 
-# Lógica de visualización y predicción
+# Lógica de visualización y predicción (CON EMPATE 50-50)
 if st.session_state.confronted and pokemon1_name != pokemon2_name:
     
-    # Obtener predicción (se llama con los nombres Title-case del selectbox)
+    # Obtener predicción
     ganador, prob_ganador, perdedor, prob_perdedor = predecir_batalla(pokemon1_name, pokemon2_name, MODEL, SCALER)
     
-    if ganador:
-        st.balloons()
+    # --- LÓGICA DE EMPATE (50%-50%) ---
+    # Usamos una pequeña tolerancia (0.4999 a 0.5001) para asegurar que el 50% exacto se detecte
+    if ganador and (prob_ganador >= 0.4999 and prob_ganador <= 0.5001):
+        
+        st.snow() # ❄️ Efecto de nieve para el empate
+        
+        # Columna Central: Empate
+        with col_center:
+            st.markdown("<h1 style='text-align: center; color: #f97316;'>🚫 NO HAY GANADOR 🚫</h1>", unsafe_allow_html=True)
+            st.markdown(f"<h2 style='text-align: center;'>¡La batalla es un EMPATE!</h2>", unsafe_allow_html=True)
+            st.markdown("### Probabilidad de Victoria")
+            # Barra de progreso neutral 50%-50%
+            st.progress(0.5, text=f"{pokemon1_name.title()} (50.0%) vs {pokemon2_name.title()} (50.0%)")
+
+        # Mostrar tarjetas NARANJAS (usando is_draw=True)
+        with col1_display:
+            display_pokemon_card(col1_display, pokemon1_name, is_draw=True) 
+        with col2_display:
+            display_pokemon_card(col2_display, pokemon2_name, is_draw=True)
+            
+    # --- LÓGICA DE GANADOR NORMAL ---
+    elif ganador:
+        st.balloons() # 🎈 Efecto de globos para el ganador
+        
         # Columna Central: Ganador y Progreso
         with col_center:
             st.markdown("<h1 style='text-align: center; color: #16a34a;'>🏆 Ganador 🏆</h1>", unsafe_allow_html=True)
@@ -360,12 +388,12 @@ if st.session_state.confronted and pokemon1_name != pokemon2_name:
                 display_pokemon_card(col2_display, pokemon2_name, prob_ganador, is_winner=True)
         
     else:
-        # En caso de error de predicción (ya se mostró el error en predecir_batalla)
+        # En caso de error de predicción 
         with col_center:
-             st.error("No se pudo predecir la batalla. Verifica los datos o el modelo.")
+            st.error("No se pudo predecir la batalla. Verifica los datos o el modelo.")
 
 elif pokemon1_name == pokemon2_name:
-    # Caso 2: Nombres iguales (No Confrontado O Confrontado)
+    # Caso 2: Nombres iguales
     st.warning("Por favor, selecciona dos Pokémon diferentes para la batalla.")
     st.session_state.confronted = False
     
@@ -388,3 +416,4 @@ else:
         display_pokemon_card(col1_display, pokemon1_name, prob_win=None, is_winner=False)
     with col2_display:
         display_pokemon_card(col2_display, pokemon2_name, prob_win=None, is_winner=False)
+        
