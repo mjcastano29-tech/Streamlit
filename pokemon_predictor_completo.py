@@ -87,6 +87,76 @@ def get_pokemon_row(pokemon_name):
     """Obtiene la fila del DataFrame usando el nombre en minúsculas."""
     # 🐛 CORRECCIÓN: Se asegura que la búsqueda sea con el nombre en minúsculas
     return df[df['name'] == pokemon_name.lower()].iloc[0]
+def display_pokemon_card(col, name, prob_win=None, is_winner=False):
+    """
+    Muestra una tarjeta de Pokémon con imagen y estadísticas en un recuadro.
+    """
+    if name is None:
+        col.empty()
+        return
+
+    # 1. Obtener datos del Pokémon
+    row = get_pokemon_row(name)
+    image_url = get_pokemon_image_url(name)
+    
+    # 2. Definir estilos
+    color_border = "#4ade80" if is_winner else ("#f87171" if prob_win is not None and not is_winner else "#60a5fa") 
+    color_text = "#16a34a" if is_winner else ("#dc2626" if prob_win is not None and not is_winner else "#2563eb")
+    
+    # --- 3. Generar el HTML para las Estadísticas ---
+    # Colores base para las estadísticas (Estilo más neutral/oscuro)
+    stats_html = f"""
+    <div style="
+        width: 100%; 
+        background-color: #2e3034; /* Fondo oscuro para el recuadro */
+        border-radius: 8px; 
+        padding: 8px; 
+        margin-top: 10px;
+        color: #f0f0f0; /* Texto claro */
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+    ">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+            <small>HP:</small> <strong>{int(row['hp'])}</strong>
+            <small>Attack:</small> <strong>{int(row['attack'])}</strong>
+            <small>Defense:</small> <strong>{int(row['defense'])}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+            <small>Sp.Atk:</small> <strong>{int(row['sp_attack'])}</strong>
+            <small>Sp.Def:</small> <strong>{int(row['sp_defense'])}</strong>
+            <small>Speed:</small> <strong>{int(row['speed'])}</strong>
+        </div>
+        <div style="text-align: center; margin-top: 5px; padding-top: 5px; border-top: 1px solid #444;">
+            <small>TOTAL STATS:</small> <strong>{int(row['hp'] + row['attack'] + row['defense'] + row['sp_attack'] + row['sp_defense'] + row['speed'])}</strong>
+        </div>
+    </div>
+    """
+    
+    # --- 4. HTML de la Tarjeta Completa ---
+    card_html = f"""
+    <div style="
+        border: 4px solid {color_border};
+        border-radius: 15px;
+        padding: 15px;
+        margin: 10px 0;
+        text-align: center;
+        background-color: #ffffff;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        height: 450px; /* Aumentamos la altura para acomodar las stats */
+        display: flex;
+        flex-direction: column;
+        justify-content: start; /* Alineamos arriba */
+        align-items: center;
+        transition: border-color 0.3s ease;
+    ">
+        <h3 style="color: {color_text}; margin-bottom: 5px;">{name.title()}</h3>
+        <img src="{image_url}" onerror="this.onerror=null; this.src='https://placehold.co/150x150/f0f0f0/888888?text=NO+IMAGE';" width="150" height="150" style="margin-bottom: 10px;">
+        
+        {stats_html}
+        
+    </div>
+    """
+    # Usamos la columna proporcionada para renderizar el HTML
+    col.markdown(card_html, unsafe_allow_html=True)
 
 def calcular_ventaja_completa(poke_a_name, poke_b_name):
     """Calcula la ventaja de tipo completa del Pokémon A contra el Pokémon B."""
